@@ -2,6 +2,8 @@ import { html } from 'lit-element';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html';
 import marked from 'marked';
 
+import { randomId } from '@/utils/common-utils';
+
 function onApiKeyChange(apiKeyId, e) {
   let apiKeyValue = '';
   const securityObj = this.resolvedSpec.securitySchemes.find((v) => (v.apiKeyId === apiKeyId));
@@ -45,7 +47,7 @@ function updateOAuthKey(apiKeyId, tokenType = 'Bearer', accessToken) {
 
 /* eslint-disable no-console */
 // Gets Access-Token in exchange of Authorization Code
-async function fetchAccessToken(tokenUrl, clientId, clientSecret, redirectUrl, grantType, authCode, sendClientSecretIn = 'header', apiKeyId, authFlowDivEl, scopes = null) {
+async function fetchAccessToken(tokenUrl, clientId, clientSecret, redirectUrl, grantType, authCode, sendClientSecretIn = 'header', apiKeyId, authFlowDivEl, scopes = null, codeVerifier) {
   const respDisplayEl = authFlowDivEl ? authFlowDivEl.querySelector('.oauth-resp-display') : undefined;
   const urlFormParams = new URLSearchParams();
   const headers = new Headers();
@@ -54,6 +56,11 @@ async function fetchAccessToken(tokenUrl, clientId, clientSecret, redirectUrl, g
   urlFormParams.append('grant_type', grantType);
   if (authCode) {
     urlFormParams.append('code', authCode);
+    urlFormParams.append('client_id', clientId);
+
+    if (codeVerifier) {
+      urlFormParams.append('code_verifier', codeVerifier);
+    }
   }
   if (sendClientSecretIn === 'header') {
     headers.set('Authorization', `Basic ${btoa(`${clientId}:${clientSecret}`)}`);
@@ -91,7 +98,7 @@ async function fetchAccessToken(tokenUrl, clientId, clientSecret, redirectUrl, g
 }
 
 // Gets invoked when it receives the Authorization Code from the other window via message-event
-async function onWindowMessageEvent(msgEvent, winObj, tokenUrl, clientId, clientSecret, redirectUrl, grantType, sendClientSecretIn, apiKeyId, authFlowDivEl) {
+async function onWindowMessageEvent(msgEvent, winObj, tokenUrl, clientId, clientSecret, redirectUrl, grantType, sendClientSecretIn, apiKeyId, authFlowDivEl, codeVerifier) {
   sessionStorage.removeItem('winMessageEventActive');
   winObj.close();
   if (msgEvent.data.fake) {
@@ -106,7 +113,7 @@ async function onWindowMessageEvent(msgEvent, winObj, tokenUrl, clientId, client
   if (msgEvent.data) {
     if (msgEvent.data.responseType === 'code') {
       // Authorization Code flow
-      fetchAccessToken.call(this, tokenUrl, clientId, clientSecret, redirectUrl, grantType, msgEvent.data.code, sendClientSecretIn, apiKeyId, authFlowDivEl);
+      fetchAccessToken.call(this, tokenUrl, clientId, clientSecret, redirectUrl, grantType, msgEvent.data.code, sendClientSecretIn, apiKeyId, authFlowDivEl, null, codeVerifier);
     } else if (msgEvent.data.responseType === 'token') {
       // Implicit flow
       updateOAuthKey.call(this, apiKeyId, msgEvent.data.token_type, msgEvent.data.access_token);
@@ -149,6 +156,14 @@ async function onInvokeOAuthFlow(apiKeyId, flowType, authUrl, tokenUrl, e) {
     authCodeParams.set('response_type', responseType);
     authCodeParams.set('state', state);
     authCodeParams.set('show_dialog', true);
+
+    let codeChallenge;
+    if (flowType === 'authorizationCode') {
+      codeChallenge = randomId(43);
+      authCodeParams.set('code_challenge', codeChallenge);
+      authCodeParams.set('code_challenge_method', 'plain');
+    }
+
     authUrlObj.search = authCodeParams.toString();
     // If any older message-event-listener is active then fire a fake message to remove it (these are single time listeners)
     if (sessionStorage.getItem('winMessageEventActive') === 'true') {
@@ -162,7 +177,7 @@ async function onInvokeOAuthFlow(apiKeyId, flowType, authUrl, tokenUrl, e) {
         sessionStorage.setItem('winMessageEventActive', 'true');
         window.addEventListener(
           'message',
-          (msgEvent) => onWindowMessageEvent.call(this, msgEvent, newWindow, tokenUrl, clientId, clientSecret, redirectUrlObj.toString(), grantType, sendClientSecretIn, apiKeyId, authFlowDivEl),
+          (msgEvent) => onWindowMessageEvent.call(this, msgEvent, newWindow, tokenUrl, clientId, clientSecret, redirectUrlObj.toString(), grantType, sendClientSecretIn, apiKeyId, authFlowDivEl, codeChallenge),
           { once: true },
         );
       }

@@ -113,3 +113,17 @@ export function advanceSearch(searchVal, allSpecTags, searchOptions = []) {
   });
   return pathsMatched;
 }
+
+export function randomId(length) {
+  const oddLength = length % 2 !== 0;
+  const arr = new Uint8Array(oddLength ? length / 2 + 1 : length / 2);
+
+  (window.crypto || window.msCrypto).getRandomValues(arr);
+
+  const hex = Array.from(arr, (dec) => {
+    const a = dec.toString(16);
+    return (a.length % 2) !== 0 ? `0${a}` : a;
+  }).join('');
+
+  return oddLength ? hex.slice(0, -1) : hex;
+}
