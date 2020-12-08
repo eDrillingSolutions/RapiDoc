@@ -17,12 +17,14 @@
   </head>
   <body>
     <rapi-doc id = "thedoc"
-      spec-url="../specs/data-types.yaml" 
+      spec-url="../specs/parameters.yaml" 
       allow-authentication = "false" 
       show-info = "false"
       show-header = "false"
       render-style = "read"
-      allow-try = "false" 
+      sort-endpoints-by = "summary"
+      default-schema-tab = "example"
+      allow-try = "true" 
       regular-font = 'Open Sans'
       mono-font = "Roboto Mono"
     > 
@@ -32,12 +34,6 @@
         <div style="display: flex;justify-content: center; margin: 2px 0">
           <button class='btn medium' onclick="document.getElementById('thedoc').setAttribute('allow-try', 'true')" >Yes</button>
           <button class='btn medium' onclick="document.getElementById('thedoc').setAttribute('allow-try', 'false')" >No</button>
-        </div>
-
-        <div style="text-align: center; padding: 20px 0 12px 0; color:#47AFE8"> Schema Style</div>
-        <div style="display: flex;justify-content: center; margin: 2px 0">
-          <button class='btn medium' onclick="document.getElementById('thedoc').setAttribute('schema-style', 'table')" >Table</button>
-          <button class='btn medium' onclick="document.getElementById('thedoc').setAttribute('schema-style', 'tree')" >Tree</button>
         </div>
       </div>
     </div>

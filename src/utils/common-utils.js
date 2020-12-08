@@ -10,7 +10,7 @@ export function debounce(fn, delay) {
   };
 }
 
-export const invalidCharsRegEx = new RegExp(/[\s#:?&=]/, 'g');
+export const invalidCharsRegEx = new RegExp(/[\s#:?&={}]/, 'g');
 export const rapidocApiKey = '_rapidoc_api_key';
 
 export function sleep(ms) {
@@ -126,4 +126,9 @@ export function randomId(length) {
   }).join('');
 
   return oddLength ? hex.slice(0, -1) : hex;
+}
+
+export function hasValidPathInUrlHash(tags) {
+  const filterTags = tags.filter((tag) => tag.paths.filter((path) => window.location.hash.substring(1) === `${path.method}-${path.path.replace(invalidCharsRegEx, '-')}`).length > 0);
+  return filterTags.length > 0;
 }

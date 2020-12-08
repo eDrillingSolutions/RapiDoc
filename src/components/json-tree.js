@@ -3,6 +3,7 @@ import { copyToClipboard } from '@/utils/common-utils';
 import FontStyles from '@/styles/font-styles';
 import BorderStyles from '@/styles/border-styles';
 import InputStyles from '@/styles/input-styles';
+import CustomStyles from '@/styles/custom-styles';
 
 export default class JsonTree extends LitElement {
   static get properties() {
@@ -68,6 +69,7 @@ export default class JsonTree extends LitElement {
         align-items: center;
         font-size: calc(var(--font-size-small) - 1px);
       }`,
+      CustomStyles,
     ];
   }
 
@@ -114,10 +116,9 @@ export default class JsonTree extends LitElement {
 
   toggleExpand(e) {
     const openBracketEl = e.target;
-    const closeBacketText = openBracketEl.nextSibling.nextSibling.innerHTML;
     if (openBracketEl.classList.contains('expanded')) {
       openBracketEl.classList.replace('expanded', 'collapsed');
-      e.target.innerHTML = e.target.classList.contains('array') ? `[...${closeBacketText}` : `{...${closeBacketText}`;
+      e.target.innerHTML = e.target.classList.contains('array') ? '[...]' : '{...}';
     } else {
       openBracketEl.classList.replace('collapsed', 'expanded');
       e.target.innerHTML = e.target.classList.contains('array') ? '[' : '{';

@@ -10,6 +10,7 @@
 
     gtag('config', 'UA-132775238-1');
   </script>
+  <script data-ad-client="ca-pub-3841792756480152" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
@@ -97,7 +98,7 @@
           </tr>
           <tr>
             <td class="attr-col mono bold right">sort-endpoints-by </td>
-            <td class="gray"><span class='bold dark-gray'>Allowed:<span class='blue'> path | method</span></span> Sort endpoints within each tags by path or method </td>
+            <td class="gray"><span class='bold dark-gray'>Allowed:<span class='blue'> path | method | summary</span></span> Sort endpoints within each tags by path, method or summary </td>
             <td class='default-col'>path</td>
           </tr>
           <tr>
@@ -116,6 +117,13 @@
               you should provide the location as <span class="mono dark-gray"> get-/user/login</span>              
             </td>
             <td>(empty)</td>
+          </tr>
+
+          <tr>
+            <td class="attr-col mono bold right">fill-request-fields-with-example </td>
+            <td class="gray"><span class='bold dark-gray'>Allowed:<span class='blue'> true | false </span>
+            </span> Request fields will be filled with example value (if provided in spec) </td>
+            <td class='default-col'>true</td>
           </tr>
         </table>
 
@@ -271,9 +279,24 @@
           </tr>
           <tr>
             <td class="mono bold right">render-style </td>
-            <td class="gray"><span class='bold dark-gray'>Allowed:<span class='blue'> read | view</span></span> - 
-              determines display of api-docs. Currently there are two modes supported. 
-              'read' - more suitable for reading and 'view' more friendly for quick exploring 
+            <td class="gray"><span class='bold dark-gray'>Allowed:<span class='blue'> read | view | focused</span></span> - 
+              determines display of api-docs. Currently there are three modes supported. 
+              <ul>
+                <li>
+                  <span class="mono blue">view</span> 
+                  <span>friendly for quick exploring (expand/collapse the section of your interest)</span>
+                </li>
+                <li>
+                  <span class="mono blue">read</span>
+                  <span>suitable for reading (like a continuous web-page)</span>
+                </li>
+                <li>
+                  <span class="mono blue">focused</span>
+                  <span>similar to read but focuses on a single endpoint at a time (good for large specs)</span>
+                </li>
+
+              </ul>
+              'read' - more suitable for reading 'view' more friendly for quick exploring 
             </td>
             <td>view</td>
           </tr>
@@ -393,7 +416,7 @@
           <tr>
             <td class="mono bold right">allow-advance-search</td>
             <td class="gray">
-                Provides advance search functionality, to search through API-paths, API-description, API-parameters and API-Responses
+                Provides advanced search functionality, to search through API-paths, API-description, API-parameters and API-Responses
             </td>
             <td>true</td>
           </tr>
@@ -469,10 +492,7 @@
             </td>
             <td>(empty)</td>
           </tr>
-
-
         </table>
-
       </div>  
 
       <a id="methods"></a>
@@ -543,8 +563,8 @@ el.addEventListener('spec-loaded', e => console.log(e.detail));
       <div class="table-block">
         <table class="m-table">
           <tr>
-            <th >Slot Name</th>
-            <th >Description </th>
+            <th class="right">Slot Name</th>
+            <th class="left">Description </th>
           </tr>
           <tr>
             <td class="mono bold right">(default)</td>
@@ -568,6 +588,40 @@ el.addEventListener('spec-loaded', e => console.log(e.detail));
           </tr>
         </table>
       </div>
+
+      <a id="developers"></a>
+      <h2> Advanced Styling </h2>
+      <div class="table-block">
+        <table class="m-table">
+          <tr>
+            <th>For those who like to perform advanced stying by building RapiDoc from source</th>
+          </tr>
+          <tr>
+            <td class="gray">
+              <span>
+                Developers can providing their own style overrides in <span class="mono blue">src/styles/custom-styles.js</span>.
+                This is provided as a clean way into add custom style overrides without making changes to the codebase
+              </span>
+              <pre class="shadow1 code-block" style="width:550px"><code class="js">// src/styles/custom-styles.js
+
+import { css } from 'lit-element';
+export default css`
+  .tag.title {
+    text-transform: capitalize;
+    border-left: 2px dotted var(--red);
+  }
+`;</code></pre>
+
+and build RapiDoc 
+
+<pre class="shadow1 code-block" style="width:550px"><code class="shell">yarn build</code></pre>
+generated <span class="mono bold">rapidoc-min.js</span>  in <span class="mono bold">dist</span> folder will have your styles
+
+                <br/>
+            </td>
+          </tr>
+        </table>
+      </div> 
     </div>  
   </div>
   <!-- End of API -->

@@ -51,9 +51,10 @@ async function fetchAccessToken(tokenUrl, clientId, clientSecret, redirectUrl, g
   const respDisplayEl = authFlowDivEl ? authFlowDivEl.querySelector('.oauth-resp-display') : undefined;
   const urlFormParams = new URLSearchParams();
   const headers = new Headers();
-
-  urlFormParams.append('redirect_uri', redirectUrl);
   urlFormParams.append('grant_type', grantType);
+  if (grantType !== 'client_credentials') {
+    urlFormParams.append('redirect_uri', redirectUrl);
+  }
   if (authCode) {
     urlFormParams.append('code', authCode);
     urlFormParams.append('client_id', clientId);
@@ -318,18 +319,22 @@ export default function securitySchemeTemplate() {
                 }
               </td>
               <td>
-                ${v.type.toLowerCase() === 'apikey' || (v.type.toLowerCase() === 'http' && v.scheme.toLowerCase() === 'bearer')
+                ${(v.type.toLowerCase() === 'apikey') || (v.type.toLowerCase() === 'http' && v.scheme.toLowerCase() === 'bearer')
                   ? html`
                     ${v.type.toLowerCase() === 'apikey'
                       ? html`Send <code>${v.name}</code> in <code>${v.in}</code> with the given value`
                       : html`Send <code>Authorization</code> in <code>header</code> containing the word <code>Bearer</code> followed by a space and a Token String.`
                     }
                     <div style="display:flex;max-height:28px;">
-                      <input type = "text" value = "${v.value}" class="api-key-input" placeholder = "api-token" spellcheck = "false">
-                      <button class="m-btn thin-border" style = "margin-left:5px;"
-                        @click="${(e) => { onApiKeyChange.call(this, v.apiKeyId, e); }}"> 
-                        ${v.finalKeyValue ? 'UPDATE' : 'SET'}
-                      </button>
+                      ${v.in !== 'cookie'
+                        ? html`
+                          <input type = "text" value = "${v.value}" class="api-key-input" placeholder = "api-token" spellcheck = "false">
+                          <button class="m-btn thin-border" style = "margin-left:5px;"
+                            @click="${(e) => { onApiKeyChange.call(this, v.apiKeyId, e); }}"> 
+                            ${v.finalKeyValue ? 'UPDATE' : 'SET'}
+                          </button>`
+                        : ''
+                      }
                     </div>`
                   : ''
                 }
@@ -391,29 +396,34 @@ export function pathSecurityTemplate(pathSecurity) {
     });
     return html`<div style="position:absolute; top:3px; right:2px; font-size:var(--font-size-small); line-height: 1.5;">
       <div style="position:relative; display:flex; min-width:350px; max-width:700px; justify-content: flex-end;">
-        <div style="font-size: calc(var(--font-size-small) + 2px)"> &#128274; </div>
-          ${orSecurityKeys1.map((orSecurityItem1) => html`
+        <svg width="16" height="24">
+          <g>
+            <path style="fill: var(--fg3)" d="m13.8,8.5l0,-2.6l0,0c0,-3.2 -2.6,-5.8 -5.8,-5.8s-5.8,2.6 -5.8,5.8l0,0l0,2.6l-2.1,0l0,11.2l16,0l0,-11.2l-2.1,0l-0,0l0,0l0,0l-0,0zm-9.8,-2.6c0,0 0,0 0,0c0,-2.2 1.8,-4 4,-4c2.2,0 4,1.8 4,4c0,0 0,0 0,0l0,2.6l-8.03,0l0,-2.6l0,0l0,0z" />
+          </g>
+        </svg>
+          ${orSecurityKeys1.map((orSecurityItem1, i) => html`
+          ${i !== 0 ? html`<div style="padding:3px 4px;"> OR </div>` : ''}
           <div class="tooltip">
             <div style = "padding:2px 4px; white-space:nowrap; text-overflow:ellipsis;max-width:150px; overflow:hidden;"> ${orSecurityItem1.securityTypes} </div>
             <div class="tooltip-text" style="position:absolute; color: var(--fg); top:26px; right:0; border:1px solid var(--border-color);padding:2px 4px; display:block;">
               ${orSecurityItem1.securityDefs.length > 1 ? html`<div>Requires <b>all</b> of the following </div>` : ''}
               <div style="padding-left: 8px">
-                ${orSecurityItem1.securityDefs.map((andSecurityItem, i) => html`
+                ${orSecurityItem1.securityDefs.map((andSecurityItem, j) => html`
                   ${andSecurityItem.type === 'oauth2'
                     ? html`
                       <div>
-                        ${orSecurityItem1.securityDefs.length > 1 ? html`<b>${i + 1}.</b> &nbsp;` : html`Requires`}
+                        ${orSecurityItem1.securityDefs.length > 1 ? html`<b>${j + 1}.</b> &nbsp;` : html`Requires`}
                         OAuth Token (${andSecurityItem.apiKeyId}) in <b>Authorization header</b>
                       </div>`
                     : andSecurityItem.type === 'http'
                       ? html`
                         <div>
-                          ${orSecurityItem1.securityDefs.length > 1 ? html`<b>${i + 1}.</b> &nbsp;` : html`Requires`} 
+                          ${orSecurityItem1.securityDefs.length > 1 ? html`<b>${j + 1}.</b> &nbsp;` : html`Requires`} 
                           ${andSecurityItem.scheme === 'basic' ? 'Base 64 encoded username:password' : 'Bearer Token'} in <b>Authorization header</b>
                         </div>`
                       : html`
                         <div>
-                          ${orSecurityItem1.securityDefs.length > 1 ? html`<b>${i + 1}.</b> &nbsp;` : html`Requires`} 
+                          ${orSecurityItem1.securityDefs.length > 1 ? html`<b>${j + 1}.</b> &nbsp;` : html`Requires`} 
                           Token in <b>${andSecurityItem.name} ${andSecurityItem.in}</b>
                         </div>`
                   }

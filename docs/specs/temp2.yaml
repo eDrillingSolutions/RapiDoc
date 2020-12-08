@@ -18,17 +18,21 @@ paths:
             schema:
               anyOf:
                 - title: Option 1
-                  type: object
-                  properties:
-                    name:
-                      type: string
-                    age:
-                      type: integer
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      age:
+                        type: integer
                 - title: Option 2
-                  type: object
-                  properties:
-                    location:
-                      type: string
-                    zip:
-                      type: integer
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      location:
+                        type: string
+                      pin:
+                        type: integer
 

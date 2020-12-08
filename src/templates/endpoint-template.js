@@ -45,14 +45,13 @@ function endpointHeadTemplate(path) {
 }
 
 function endpointBodyTemplate(path) {
-  let accept = '';
+  const acceptContentTypes = new Set();
   for (const respStatus in path.responses) {
-    for (const acceptContentType in (path.responses[respStatus].content)) {
-      accept = `${accept + acceptContentType}, `;
+    for (const acceptContentType in (path.responses[respStatus]?.content)) {
+      acceptContentTypes.add(acceptContentType.trim());
     }
   }
-  accept = accept.replace(/,\s*$/, ''); // remove trailing comma
-
+  const accept = [...acceptContentTypes].join(', ');
   // Filter API Keys that are non-empty and are applicable to the the path
   const nonEmptyApiKeys = this.resolvedSpec.securitySchemes.filter((v) => (v.finalKeyValue && path.security?.some((ps) => (v.apiKeyId in ps)))) || [];
 
@@ -81,7 +80,8 @@ function endpointBodyTemplate(path) {
         .api_keys = "${nonEmptyApiKeys}"
         .servers = "${path.servers}" 
         server-url = "${path.servers && path.servers.length > 0 ? path.servers[0].url : this.selectedServer.computedUrl}" 
-        active-schema-tab = "${this.defaultSchemaTab}" 
+        active-schema-tab = "${this.defaultSchemaTab}"
+        fill-request-fields-with-example = "${this.fillRequestFieldsWithExample}"
         allow-try = "${this.allowTry}"
         accept = "${accept}"
         render-style="${this.renderStyle}" 
@@ -111,7 +111,7 @@ export default function endpointTemplate() {
     <div class='regular-font section-gap section-tag ${tag.expanded ? 'expanded' : 'collapsed'}' > 
     
       <div class='section-tag-header' @click="${() => { tag.expanded = !tag.expanded; this.requestUpdate(); }}">
-        <div id='${tag.name.replace(invalidCharsRegEx, '-')}' class="sub-title tag">${tag.name}</div>
+        <div id='${tag.name.replace(invalidCharsRegEx, '-')}' class="sub-title tag" style="color:var(--primary-color)">${tag.name}</div>
       </div>
       <div class='section-tag-body'>
         <div class="regular-font regular-font-size m-markdown" style="padding-bottom:12px">

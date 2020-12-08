@@ -1,42 +1,65 @@
-openapi: 3.0.0
+openapi: 3.0.2
 info:
-  title: sample-array-one
-  version: '1.0'
-servers:
-  - url: 'http://localhost'
+  title: OmicIDX
+  version: 0.99.1
+  termsOfService: https://flexmail.be/en/terms-and-conditions
+  contact: 
+    email: api@flexmail.be
+    name: John Doe
+    url: example.org
+  license: 
+    name: Apache 2.0
+    url: example.org/license
+
 paths:
-  /sample-array-one:
+  '/sra/experiments':
     get:
-      summary: sample-array-one
-      tags: []
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  single:
-                    oneOf:
-                      - type: string
-                      - type: object
-                        properties:
-                          x:
-                            type: string
-                          y:
-                            type: string
-                  multiple:
-                    type: array
-                    items:
-                      oneOf:
-                        - type: string
-                        - type: object
-                          properties:
-                            x:
-                              type: string
-                            y:
-                              type: string
-      operationId: get-sample-array-one
+                $ref: '#/components/schemas/ResponseModel'
+      tags:
+        - SRA
+      summary: Experiments
+      operationId: experiments_sra_experiments_get
+      parameters:
+        - description: 'The query, using [lucene query syntax](https://lucene.apache.org/core/3_6_0/queryparsersyntax.html)'
+          required: false
+          schema:
+            title: Q
+            type: string
+            description: 'The query, using [lucene query syntax](https://lucene.apache.org/core/3_6_0/queryparsersyntax.html)'
+            example: cancer
+          name: q
+          in: query
 components:
-  schemas: {}
+  schemas:
+    ResponseModel:
+      title: ResponseModel
+      required:
+        - facets
+        - stats
+        - success
+      type: object
+      properties:
+        hits:
+          title: Hits
+          deprecated: true
+          type: array
+          items:
+            type: object
+        facets:
+          title: Facets
+          type: array
+          items:
+            type: object
+        success:
+          title: Success
+          type: boolean
+        cursor:
+          title: Cursor
+          type: string
+
