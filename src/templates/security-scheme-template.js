@@ -48,6 +48,7 @@ function updateOAuthKey(apiKeyId, tokenType = 'Bearer', accessToken) {
 /* eslint-disable no-console */
 // Gets Access-Token in exchange of Authorization Code
 async function fetchAccessToken(tokenUrl, clientId, clientSecret, redirectUrl, grantType, authCode, sendClientSecretIn = 'header', apiKeyId, authFlowDivEl, scopes = null, codeVerifier) {
+  console.log(tokenUrl, clientId, clientSecret, redirectUrl, grantType, authCode, sendClientSecretIn, apiKeyId, authFlowDivEl, scopes, codeVerifier);
   const respDisplayEl = authFlowDivEl ? authFlowDivEl.querySelector('.oauth-resp-display') : undefined;
   const urlFormParams = new URLSearchParams();
   const headers = new Headers();
@@ -58,10 +59,9 @@ async function fetchAccessToken(tokenUrl, clientId, clientSecret, redirectUrl, g
   if (authCode) {
     urlFormParams.append('code', authCode);
     urlFormParams.append('client_id', clientId);
-
-    if (codeVerifier) {
-      urlFormParams.append('code_verifier', codeVerifier);
-    }
+  }
+  if (codeVerifier) {
+    urlFormParams.append('code_verifier', codeVerifier);
   }
   if (sendClientSecretIn === 'header') {
     headers.set('Authorization', `Basic ${btoa(`${clientId}:${clientSecret}`)}`);
@@ -113,6 +113,7 @@ async function onWindowMessageEvent(msgEvent, winObj, tokenUrl, clientId, client
   }
   if (msgEvent.data) {
     if (msgEvent.data.responseType === 'code') {
+      console.log(msgEvent.data);
       // Authorization Code flow
       fetchAccessToken.call(this, tokenUrl, clientId, clientSecret, redirectUrl, grantType, msgEvent.data.code, sendClientSecretIn, apiKeyId, authFlowDivEl, null, codeVerifier);
     } else if (msgEvent.data.responseType === 'token') {
@@ -160,9 +161,15 @@ async function onInvokeOAuthFlow(apiKeyId, flowType, authUrl, tokenUrl, e) {
 
     let codeChallenge;
     if (flowType === 'authorizationCode') {
-      codeChallenge = randomId(43);
-      authCodeParams.set('code_challenge', codeChallenge);
-      authCodeParams.set('code_challenge_method', 'plain');
+      const usePkce = authFlowDivEl.querySelector('.oauth-use-pkce')?.checked;
+
+      if (usePkce) {
+        codeChallenge = randomId(43);
+        authCodeParams.set('code_challenge', codeChallenge);
+        authCodeParams.set('code_challenge_method', 'plain');
+
+        console.log(authCodeParams);
+      }
     }
 
     authUrlObj.search = authCodeParams.toString();
@@ -238,6 +245,17 @@ function oAuthFlowTemplate(flowName, clientId, clientSecret, apiKeyId, authFlow)
                 `)}
               </div>
             `
+            : ''
+          }
+          ${flowName === 'authorizationCode'
+            ? html`
+              <div class="m-checkbox" style="display:inline-flex; align-items:center">
+                  <label style="margin-left:5px">
+                    <input type="checkbox" class="oauth-use-pkce">
+                    Use PKCE for authorization code flow
+                  </label>
+              </div>
+              `
             : ''
           }
           <div style="display:flex; max-height:28px;">
