@@ -93,6 +93,10 @@ paths:
                   age:
                     description: Person Age
                     type: integer
+                    minimum: 1
+                    maximum: 100
+
+
   /person:
     post:
       tags:
@@ -141,6 +145,11 @@ paths:
           schema:
             type: string
             format: date
+        - name: phone
+          in: query
+          schema:
+            type: string
+            pattern: '/^\+(?:[0-9]-?){6,14}[0-9]$/'
         - name: marital-status
           in: query
           required: true
@@ -156,8 +165,12 @@ paths:
         - name: interests
           in: query
           required: true
+          description: __Exploded Array__ will send separate querystring parameter for each items eg - `interests=computers&interests=movies`
           schema:
             type: array
+            example: 
+              - computers
+              - movies
             minItems: 1
             maxItems: 3
             items:
@@ -174,7 +187,7 @@ paths:
               default: hiking   
         - name: tags
           in: query
-          description: Add tags to the person (not-exploded)
+          description: __Not Exploded Array__ will send a single querystring parameter with comma separated string eg - `tags=tall,dark,handsome`
           style: form
           explode: false
           schema:

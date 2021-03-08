@@ -241,10 +241,10 @@ function oAuthFlowTemplate(flowName, clientId, clientSecret, apiKeyId, authFlow)
             : ''
           }
           <div style="display:flex; max-height:28px;">
-            <input type="text" value = "${clientId}" placeholder="client-id" spellcheck="false" class="oauth-client-id">
+            <input type="text" value = "${clientId || ''}" placeholder="client-id" spellcheck="false" class="oauth-client-id">
             ${flowName === 'authorizationCode' || flowName === 'clientCredentials' || flowName === 'password'
               ? html`
-                <input type="password" value = "${clientSecret}" placeholder="client-secret" spellcheck="false" class="oauth-client-secret" style = "margin:0 5px;">
+                <input type="password" value = "${clientSecret || ''}" placeholder="client-secret" spellcheck="false" class="oauth-client-secret" style = "margin:0 5px;">
                 ${flowName === 'authorizationCode' || flowName === 'clientCredentials'
                   ? html`
                     <select style="margin-right:5px;" class="oauth-send-client-secret-in">
@@ -280,9 +280,12 @@ function oAuthFlowTemplate(flowName, clientId, clientSecret, apiKeyId, authFlow)
 }
 
 export default function securitySchemeTemplate() {
-  const providedApiKeys = this.resolvedSpec.securitySchemes.filter((v) => (v.finalKeyValue));
+  const providedApiKeys = this.resolvedSpec.securitySchemes?.filter((v) => (v.finalKeyValue));
+  if (!providedApiKeys) {
+    return;
+  }
   return html`
-  <div id='authentication' style="margin-top:24px; margin-bottom:24px;" class = 'observe-me ${'read focused'.includes(this.renderStyle) ? 'section-gap--read-mode' : 'section-gap '}'>
+  <section id='auth' style="margin-top:24px; margin-bottom:24px;" class = 'observe-me ${'read focused'.includes(this.renderStyle) ? 'section-gap--read-mode' : 'section-gap '}'>
     <div class='sub-title regular-font'> AUTHENTICATION </div>
 
     <div class="small-font-size" style="display:flex; align-items: center; min-height:30px">
@@ -357,7 +360,9 @@ export default function securitySchemeTemplate() {
               ? html`
                 <tr>
                   <td colspan="2" style="border:none; padding-left:48px">
-                    ${Object.keys(v.flows).map((f) => oAuthFlowTemplate.call(this, f, v.clientId, v.clientSecret, v.apiKeyId, v.flows[f]))} 
+                    ${Object.keys(v.flows).map((f) => oAuthFlowTemplate.call(
+                      this, f, v['x-client-id'], v['x-client-secret'], v.apiKeyId, v.flows[f],
+                    ))} 
                   </td>
                 </tr>    
                 `
@@ -367,7 +372,8 @@ export default function securitySchemeTemplate() {
         </table>`
       : ''
     }
-  </div>
+    <slot name="auth"></slot>
+  </section>
 `;
 }
 
@@ -404,7 +410,9 @@ export function pathSecurityTemplate(pathSecurity) {
           ${orSecurityKeys1.map((orSecurityItem1, i) => html`
           ${i !== 0 ? html`<div style="padding:3px 4px;"> OR </div>` : ''}
           <div class="tooltip">
-            <div style = "padding:2px 4px; white-space:nowrap; text-overflow:ellipsis;max-width:150px; overflow:hidden;"> ${orSecurityItem1.securityTypes} </div>
+            <div style = "padding:2px 4px; white-space:nowrap; text-overflow:ellipsis;max-width:150px; overflow:hidden;">
+              <a href="#auth"> ${orSecurityItem1.securityTypes} </a>
+            </div>
             <div class="tooltip-text" style="position:absolute; color: var(--fg); top:26px; right:0; border:1px solid var(--border-color);padding:2px 4px; display:block;">
               ${orSecurityItem1.securityDefs.length > 1 ? html`<div>Requires <b>all</b> of the following </div>` : ''}
               <div style="padding-left: 8px">
@@ -414,6 +422,10 @@ export function pathSecurityTemplate(pathSecurity) {
                       <div>
                         ${orSecurityItem1.securityDefs.length > 1 ? html`<b>${j + 1}.</b> &nbsp;` : html`Requires`}
                         OAuth Token (${andSecurityItem.apiKeyId}) in <b>Authorization header</b>
+                        ${orSecurityItem1.pathScopes !== ''
+                          ? html`. Required scopes: <ul>${orSecurityItem1.pathScopes.split(',').map((scope) => html`<li>${scope}</li>`)}</ul>`
+                          : ''
+                        }
                       </div>`
                     : andSecurityItem.type === 'http'
                       ? html`
@@ -435,27 +447,6 @@ export function pathSecurityTemplate(pathSecurity) {
         }
       </div>
     `;
-
-    /*
-    return html`<div style="position:absolute; top:3px; right:2px; font-size: calc(var(--font-size-small));">
-      <div style="position:relative; display:flex;">
-        <div style="font-size: calc(var(--font-size-small) + 2px)"> &#128274; </div>
-          ${pathSecurityDefs.map((v) => html`
-          <div class="tooltip">
-            <div style = "padding:2px 4px;"> ${v.securityScheme.typeDisplay} </div>
-            ${v.securityScheme.type === 'oauth2'
-              ? html`
-                <div class="tooltip-text" style="position:absolute; color: var(--fg); top:28px; right:0; border:1px solid var(--border-color);padding:2px 4px; min-width:100px; max-width:400px; display:inline-flex;">
-                  <b>Scopes:</b> &nbsp; ${v.scopes.join(', ')}
-                </div>`
-              : ''
-            }
-          </div>
-        `)
-        }
-      </div>
-      `;
-    */
   }
   return '';
 }

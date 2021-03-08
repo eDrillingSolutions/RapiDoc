@@ -4,19 +4,21 @@ import Prism from 'prismjs';
 
 import { unsafeHTML } from 'lit-html/directives/unsafe-html';
 // import { live } from 'lit-html/directives/live';
-import TableStyles from '@/styles/table-styles';
-import FlexStyles from '@/styles/flex-styles';
-import InputStyles from '@/styles/input-styles';
-import FontStyles from '@/styles/font-styles';
-import BorderStyles from '@/styles/border-styles';
-import TabStyles from '@/styles/tab-styles';
-import PrismStyles from '@/styles/prism-styles';
-import CustomStyles from '@/styles/custom-styles';
-import { copyToClipboard } from '@/utils/common-utils';
-import { schemaInObjectNotation, getTypeInfo, generateExample } from '@/utils/schema-utils';
-import '@/components/json-tree';
-import '@/components/schema-tree';
-import '@/components/tag-input';
+import TableStyles from '~/styles/table-styles';
+import FlexStyles from '~/styles/flex-styles';
+import InputStyles from '~/styles/input-styles';
+import FontStyles from '~/styles/font-styles';
+import BorderStyles from '~/styles/border-styles';
+import TabStyles from '~/styles/tab-styles';
+import PrismStyles from '~/styles/prism-styles';
+import CustomStyles from '~/styles/custom-styles';
+import { copyToClipboard, prettyXml } from '~/utils/common-utils';
+import {
+  schemaInObjectNotation, getTypeInfo, generateExample,
+} from '~/utils/schema-utils';
+import '~/components/json-tree';
+import '~/components/schema-tree';
+import '~/components/tag-input';
 
 export default class ApiRequest extends LitElement {
   constructor() {
@@ -56,6 +58,7 @@ export default class ApiRequest extends LitElement {
       activeSchemaTab: { type: String, attribute: 'active-schema-tab' },
       schemaExpandLevel: { type: Number, attribute: 'schema-expand-level' },
       schemaDescriptionExpanded: { type: String, attribute: 'schema-description-expanded' },
+      schemaHideReadOnly: { type: String, attribute: 'schema-hide-read-only' },
       activeResponseTab: { type: String }, // internal tracking of response-tab not exposed as a attribute
       selectedRequestBodyType: { type: String, attribute: 'selected-request-body-type' }, // internal tracking of selected request-body type
       selectedRequestBodyExample: { type: String, attribute: 'selected-request-body-example' }, // internal tracking of selected request-body example
@@ -197,11 +200,11 @@ export default class ApiRequest extends LitElement {
 
   /* eslint-disable indent */
   inputParametersTemplate(paramType) {
-    let title = '';
     const filteredParams = this.parameters ? this.parameters.filter((param) => param.in === paramType) : [];
     if (filteredParams.length === 0) {
       return '';
     }
+    let title = '';
     if (paramType === 'path') {
       title = 'PATH PARAMETERS';
     } else if (paramType === 'query') {
@@ -281,8 +284,8 @@ export default class ApiRequest extends LitElement {
                     data-param-serialize-style = "${paramStyle}"
                     data-param-serialize-explode = "${paramExplode}"
                     data-array = "true"
-                    placeholder= "add-multiple &#x2b90;"
-                    value = "${Array.isArray(exampleVal) ? exampleVal.join(',') : exampleVal}"
+                    placeholder = "add-multiple &#x21a9;"
+                    .value = "${Array.isArray(exampleVal) ? exampleVal : exampleVal.split(',')}"
                   >
                   </tag-input>`
                 : paramSchema.type === 'object'
@@ -310,10 +313,11 @@ export default class ApiRequest extends LitElement {
           : ''
         }
         <td colspan="${(this.allowTry === 'true') ? '1' : '2'}">
-          ${paramSchema.default || paramSchema.constrain || paramSchema.allowedValues
+          ${paramSchema.default || paramSchema.constrain || paramSchema.allowedValues || paramSchema.pattern
             ? html`
               <div class="param-constraint">
                 ${paramSchema.default ? html`<span style="font-weight:bold">Default: </span>${paramSchema.default}<br/>` : ''}
+                ${paramSchema.pattern ? html`<span style="font-weight:bold">Pattern: </span>${paramSchema.pattern}<br/>` : ''}
                 ${paramSchema.constrain ? html`${paramSchema.constrain}<br/>` : ''}
                 ${paramSchema.allowedValues && paramSchema.allowedValues.split(',').map((v, i) => html`
                   ${i > 0 ? ' | ' : html`<span style="font-weight:bold"> Allowed: </span>`}
@@ -352,7 +356,7 @@ export default class ApiRequest extends LitElement {
                 ${paramSchema.type === 'array' ? '[' : ''}
                 <a class = "${this.allowTry === 'true' ? '' : 'inactive-link'}"
                   data-example-type="${paramSchema.type === 'array' ? paramSchema.type : 'string'}"
-                  data-example = "${paramSchema.type === 'array' ? (v.value?.join('~|~') || '') : (v.value || '')}"
+                  data-example = "${v.value && Array.isArray(v.value) ? (v.value?.join('~|~') || '') : (v.value || '')}"
                   @click="${(e) => {
                     const inputEl = e.target.closest('table').querySelector(`[data-pname="${param.name}"]`);
                     if (inputEl) {
@@ -389,6 +393,7 @@ export default class ApiRequest extends LitElement {
   resetRequestBodySelection() {
     this.selectedRequestBodyType = '';
     this.selectedRequestBodyExample = '';
+    this.clearResponseData();
   }
 
   // Request-Body Event Handlers
@@ -470,6 +475,7 @@ export default class ApiRequest extends LitElement {
             reqBody.schema,
             reqBody.mimeType,
             false,
+            true,
             'text',
           );
           if (!this.selectedRequestBodyExample) {
@@ -527,6 +533,7 @@ export default class ApiRequest extends LitElement {
             reqBody.schema,
             reqBody.mimeType,
             false,
+            true,
             'text',
           );
           if (reqBody.schema) {
@@ -555,6 +562,8 @@ export default class ApiRequest extends LitElement {
               .data = '${schemaAsObj}'
               schema-expand-level = "${this.schemaExpandLevel}"
               schema-description-expanded = "${this.schemaDescriptionExpanded}"
+              schema-hide-read-only = "${this.schemaHideReadOnly.includes(this.method)}"
+              schema-hide-write-only = false
             > </schema-table>
           `;
         } else if (this.schemaStyle === 'tree') {
@@ -566,6 +575,8 @@ export default class ApiRequest extends LitElement {
               .data = '${schemaAsObj}'
               schema-expand-level = "${this.schemaExpandLevel}"
               schema-description-expanded = "${this.schemaDescriptionExpanded}"
+              schema-hide-read-only = "${this.schemaHideReadOnly.includes(this.method)}"
+              schema-hide-write-only = false
             > </schema-tree>
           `;
         }
@@ -614,6 +625,7 @@ export default class ApiRequest extends LitElement {
           fieldSchema,
           'json',
           false,
+          true,
           'text',
         );
 
@@ -656,8 +668,8 @@ export default class ApiRequest extends LitElement {
                     data-pname = "${fieldName}"
                     data-example = "${Array.isArray(fieldSchema.example) ? fieldSchema.example.join('~|~') : fieldSchema.example || ''}"
                     data-array = "true"
-                    placeholder = "add-multiple &#x2b90;"
-                    value = "${Array.isArray(fieldSchema.example) ? fieldSchema.example.join(',') : fieldSchema.example}"
+                    placeholder = "add-multiple &#x21a9;"
+                    .value = "${Array.isArray(fieldSchema.example) ? fieldSchema.example : fieldSchema.example.split(',')}"
                   >
                   </tag-input>
                 `
@@ -734,10 +746,11 @@ export default class ApiRequest extends LitElement {
             ? ''
             : html`
               <td>
-                ${paramSchema.default || paramSchema.constrain || paramSchema.allowedValues
+                ${paramSchema.default || paramSchema.constrain || paramSchema.allowedValues || paramSchema.pattern
                   ? html`
                     <div class="param-constraint">
                       ${paramSchema.default ? html`<span style="font-weight:bold">Default: </span>${paramSchema.default}<br/>` : ''}
+                      ${paramSchema.pattern ? html`<span style="font-weight:bold">Pattern: </span>${paramSchema.pattern}<br/>` : ''}
                       ${paramSchema.constrain ? html`${paramSchema.constrain}<br/>` : ''}
                       ${paramSchema.allowedValues && paramSchema.allowedValues.split(',').map((v, i) => html`
                         ${i > 0 ? ' | ' : html`<span style="font-weight:bold"> Allowed: </span>`}
@@ -850,7 +863,7 @@ export default class ApiRequest extends LitElement {
             </div>`
           : html`
             <div class="tab-content col m-markdown" style="flex:1;display:${this.activeResponseTab === 'response' ? 'flex' : 'none'};" >
-              <button class="toolbar-btn" style = "position:absolute; top:12px; right:2px" @click='${(e) => { copyToClipboard(this.responseText, e); }}'> Copy </button>
+              <button class="toolbar-btn" style = "position:absolute; top:12px; right:8px" @click='${(e) => { copyToClipboard(this.responseText, e); }}'> Copy </button>
               <pre style="white-space:pre; max-height:400px; overflow:auto">${responseFormat
                 ? html`<code>${unsafeHTML(Prism.highlight(this.responseText, Prism.languages[responseFormat], responseFormat))}</code>`
                 : `${this.responseText}`
@@ -859,11 +872,11 @@ export default class ApiRequest extends LitElement {
             </div>`
         }
         <div class="tab-content col m-markdown" style="flex:1;display:${this.activeResponseTab === 'headers' ? 'flex' : 'none'};" >
-          <button  class="toolbar-btn" style = "position:absolute; top:12px; right:2px" @click='${(e) => { copyToClipboard(this.responseHeaders, e); }}'> Copy </button>
+          <button  class="toolbar-btn" style = "position:absolute; top:12px; right:8px" @click='${(e) => { copyToClipboard(this.responseHeaders, e); }}'> Copy </button>
           <pre style="white-space:pre"><code>${unsafeHTML(Prism.highlight(this.responseHeaders, Prism.languages.css, 'css'))}</code></pre>
         </div>
         <div class="tab-content col m-markdown" style="flex:1;display:${this.activeResponseTab === 'curl' ? 'flex' : 'none'};">
-          <button  class="toolbar-btn" style = "position:absolute; top:12px; right:2px" @click='${(e) => { copyToClipboard(this.curlSyntax.replace(/\\$/, ''), e); }}'> Copy </button>
+          <button  class="toolbar-btn" style = "position:absolute; top:12px; right:8px" @click='${(e) => { copyToClipboard(this.curlSyntax.replace(/\\$/, ''), e); }}'> Copy </button>
           <pre style="white-space:pre"><code>${unsafeHTML(Prism.highlight(this.curlSyntax.trim().replace(/\\$/, ''), Prism.languages.shell, 'shell'))}</code></pre>
         </div>
       </div>`;
@@ -960,6 +973,8 @@ export default class ApiRequest extends LitElement {
     let curlHeaders = '';
     let curlData = '';
     let curlForm = '';
+    const respEl = this.closest('.expanded-req-resp-container, .req-resp-container')?.getElementsByTagName('api-response')[0];
+    const acceptHeader = respEl?.selectedMimeType;
     const requestPanelEl = e.target.closest('.request-panel');
     const pathParamEls = [...requestPanelEl.querySelectorAll("[data-ptype='path']")];
     const queryParamEls = [...requestPanelEl.querySelectorAll("[data-ptype='query']")];
@@ -988,16 +1003,19 @@ export default class ApiRequest extends LitElement {
         } else {
           const paramSerializeStyle = el.dataset.paramSerializeStyle;
           const paramSerializeExplode = el.dataset.paramSerializeExplode;
-          const vals = (el.value && Array.isArray(el.value)) ? el.value : [];
-          if (paramSerializeStyle === 'spaceDelimited') {
-            urlQueryParam.append(el.dataset.pname, vals.join(' '));
-          } else if (paramSerializeStyle === 'pipeDelimited') {
-            urlQueryParam.append(el.dataset.pname, vals.join('|'));
-          } else {
-            if (paramSerializeExplode === 'true') { // eslint-disable-line no-lonely-if
-              vals.forEach((v) => { urlQueryParam.append(el.dataset.pname, v); });
+          let vals = ((el.value && Array.isArray(el.value)) ? el.value : []);
+          vals = Array.isArray(vals) ? vals.filter((v) => v !== '') : [];
+          if (vals.length > 0) {
+            if (paramSerializeStyle === 'spaceDelimited') {
+              urlQueryParam.append(el.dataset.pname, vals.join(' ').replace(/^\s|\s$/g, ''));
+            } else if (paramSerializeStyle === 'pipeDelimited') {
+              urlQueryParam.append(el.dataset.pname, vals.join('|').replace(/^\||\|$/g, ''));
             } else {
-              urlQueryParam.append(el.dataset.pname, vals.join(','));
+              if (paramSerializeExplode === 'true') { // eslint-disable-line no-lonely-if
+                vals.forEach((v) => { urlQueryParam.append(el.dataset.pname, v); });
+              } else {
+                urlQueryParam.append(el.dataset.pname, vals.join(',').replace(/^,|,$/g, ''));
+              }
             }
           }
         }
@@ -1059,7 +1077,11 @@ export default class ApiRequest extends LitElement {
     }
     curl = `curl -X ${this.method.toUpperCase()} "${curlUrl}" \\\n`;
 
-    if (this.accept) {
+    if (acceptHeader) {
+      // Uses the acceptHeader from Response panel
+      fetchOptions.headers.Accept = acceptHeader;
+      curlHeaders += ` -H "Accept: ${acceptHeader}" \\\n`;
+    } else if (this.accept) {
       fetchOptions.headers.Accept = this.accept;
       curlHeaders += ` -H "Accept: ${this.accept}" \\\n`;
     }
@@ -1172,7 +1194,6 @@ export default class ApiRequest extends LitElement {
       }
       curlHeaders += ` -H "Content-Type: ${requestBodyType}" \\\n`;
     }
-
     me.responseUrl = '';
     me.responseHeaders = '';
     // me.responseText    = '';
@@ -1187,22 +1208,39 @@ export default class ApiRequest extends LitElement {
     }
     me.curlSyntax = `${curl}${curlHeaders}${curlData}${curlForm}`;
     try {
+      let respBlob;
+      let respJson;
+      let respText;
       tryBtnEl.disabled = true;
       // await wait(1000);
-      const resp = await fetch(fetchUrl, fetchOptions);
+      const tryResp = await fetch(fetchUrl, fetchOptions);
       tryBtnEl.disabled = false;
-      me.responseStatus = resp.ok ? 'success' : 'error';
-      me.responseMessage = `${resp.statusText}:${resp.status}`;
-      me.responseUrl = resp.url;
-      resp.headers.forEach((hdrVal, hdr) => {
+      me.responseStatus = tryResp.ok ? 'success' : 'error';
+      me.responseMessage = `${tryResp.statusText}:${tryResp.status}`;
+      me.responseUrl = tryResp.url;
+      tryResp.headers.forEach((hdrVal, hdr) => {
         me.responseHeaders = `${me.responseHeaders}${hdr.trim()}: ${hdrVal}\n`;
       });
-      const contentType = resp.headers.get('content-type');
+      const contentType = tryResp.headers.get('content-type');
       if (contentType) {
         if (contentType.includes('json')) {
-          resp.json().then((respObj) => {
-            me.responseText = JSON.stringify(respObj, null, 2);
-          });
+          if ((/charset=[^"']+/).test(contentType)) {
+            const encoding = contentType.split('charset=')[1];
+            const buffer = await tryResp.arrayBuffer();
+            try {
+              respText = new TextDecoder(encoding).decode(buffer);
+            } catch {
+              respText = new TextDecoder('utf-8').decode(buffer);
+            }
+            try {
+              me.responseText = JSON.stringify(JSON.parse(respText), null, 2);
+            } catch {
+              me.responseText = respText;
+            }
+          } else {
+            respJson = await tryResp.json();
+            me.responseText = JSON.stringify(respJson, null, 2);
+          }
         } else if (RegExp('^font/|tar$|zip$|7z$|rtf$|msword$|excel$|/pdf$|/octet-stream$').test(contentType)) {
           me.responseIsBlob = true;
           me.responseBlobType = 'download';
@@ -1210,25 +1248,46 @@ export default class ApiRequest extends LitElement {
           me.responseIsBlob = true;
           me.responseBlobType = 'view';
         } else {
-          resp.text().then((respText) => {
-            me.responseText = respText;
-          });
+          respText = await tryResp.text();
+          if (contentType.includes('xml')) {
+            me.responseText = prettyXml(respText);
+          }
+          me.responseText = respText;
         }
         if (me.responseIsBlob) {
-          const contentDisposition = resp.headers.get('content-disposition');
+          const contentDisposition = tryResp.headers.get('content-disposition');
           me.respContentDisposition = contentDisposition ? contentDisposition.split('filename=')[1] : 'filename';
-          resp.blob().then((respBlob) => {
-            me.responseBlobUrl = URL.createObjectURL(respBlob);
-          });
+          respBlob = await tryResp.blob();
+          me.responseBlobUrl = URL.createObjectURL(respBlob);
         }
       } else {
-        resp.text().then((respText) => {
-          me.responseText = respText;
-        });
+        respText = await tryResp.text();
+        me.responseText = respText;
       }
+      this.dispatchEvent(new CustomEvent('after-try', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          fetchUrl,
+          fetchOptions,
+          responseStatus: me.responseStatus,
+          responseContentType: contentType,
+          responseIsBlob: me.responseIsBlob,
+          response: respJson || respText || respBlob,
+        },
+      }));
     } catch (err) {
       tryBtnEl.disabled = false;
       me.responseMessage = `${err.message} (CORS or Network Issue)`;
+      document.dispatchEvent(new CustomEvent('after-try', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          err,
+          url: fetchUrl,
+          options: fetchOptions,
+        },
+      }));
     }
   }
 

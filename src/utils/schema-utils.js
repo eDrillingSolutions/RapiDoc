@@ -240,6 +240,12 @@ function mergePropertyExamples(obj, propertyName, propExamples) {
       mergedObj[`example-${i}`] = { ...obj[exampleKey] };
       mergedObj[`example-${i}`][propertyName] = propExamples[propExampleKey];
       i++;
+      if (i >= 10) {
+        break;
+      }
+    }
+    if (i >= 10) {
+      break;
     }
   }
   return mergedObj;
@@ -267,7 +273,7 @@ export function schemaToSampleObj(schema, config = { }) {
       return;
     }
 
-    schema.allOf.map((v) => {
+    schema.allOf.forEach((v) => {
       if (v.type === 'object' || v.properties || v.allOf || v.anyOf || v.oneOf) {
         const partialObj = schemaToSampleObj(v, config);
         Object.assign(objWithAllProps, partialObj);
@@ -445,11 +451,11 @@ export function schemaInObjectNotation(schema, obj, level = 0, suffix = '') {
       } else {
         const prop = `::OPTION~${index + 1}${v.title ? `~${v.title}` : ''}`;
         objWithAnyOfProps[prop] = `${getTypeInfo(v).html}`;
+        objWithAnyOfProps['::type'] = 'xxx-of-option';
       }
     });
     obj[(schema.anyOf ? `::ANY~OF ${suffix}` : `::ONE~OF ${suffix}`)] = objWithAnyOfProps;
     obj['::type'] = 'xxx-of';
-    // obj['::deprecated'] = schema.deprecated || false;
   } else if (schema.type === 'object' || schema.properties) {
     obj['::description'] = schema.description || '';
     obj['::type'] = 'object';
@@ -483,7 +489,7 @@ export function schemaInObjectNotation(schema, obj, level = 0, suffix = '') {
 }
 
 /* Create Example object */
-export function generateExample(examples, example, schema, mimeType, includeReadOnly = true, outputType) {
+export function generateExample(examples, example, schema, mimeType, includeReadOnly = true, includeWriteOnly = true, outputType) {
   const finalExamples = [];
   // First check if examples is provided
   if (examples) {
@@ -582,7 +588,7 @@ export function generateExample(examples, example, schema, mimeType, includeRead
           schema,
           {
             includeReadOnly,
-            includeWriteOnly: true,
+            includeWriteOnly,
             deprecated: true,
           },
         );

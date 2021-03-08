@@ -1,10 +1,10 @@
 import { LitElement, html, css } from 'lit-element';
 import marked from 'marked';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html';
-import FontStyles from '@/styles/font-styles';
-import SchemaStyles from '@/styles/schema-styles';
-import BorderStyles from '@/styles/border-styles';
-import CustomStyles from '@/styles/custom-styles';
+import FontStyles from '~/styles/font-styles';
+import SchemaStyles from '~/styles/schema-styles';
+import BorderStyles from '~/styles/border-styles';
+import CustomStyles from '~/styles/custom-styles';
 
 export default class SchemaTree extends LitElement {
   static get properties() {
@@ -12,6 +12,8 @@ export default class SchemaTree extends LitElement {
       data: { type: Object },
       schemaExpandLevel: { type: Number, attribute: 'schema-expand-level' },
       schemaDescriptionExpanded: { type: String, attribute: 'schema-description-expanded' },
+      schemaHideReadOnly: { type: String, attribute: 'schema-hide-read-only' },
+      schemaHideWriteOnly: { type: String, attribute: 'schema-hide-write-only' },
     };
   }
 
@@ -19,6 +21,8 @@ export default class SchemaTree extends LitElement {
     super.connectedCallback();
     if (!this.schemaExpandLevel || this.schemaExpandLevel < 1) { this.schemaExpandLevel = 99999; }
     if (!this.schemaDescriptionExpanded || !'true false'.includes(this.schemaDescriptionExpanded)) { this.schemaDescriptionExpanded = 'false'; }
+    if (!this.schemaHideReadOnly || !'true false'.includes(this.schemaHideReadOnly)) { this.schemaHideReadOnly = 'true'; }
+    if (!this.schemaHideWriteOnly || !'true false'.includes(this.schemaHideWriteOnly)) { this.schemaHideWriteOnly = 'true'; }
   }
 
   static get styles() {
@@ -100,8 +104,6 @@ export default class SchemaTree extends LitElement {
             ${this.generateTree(
               this.data['::type'] === 'array' ? this.data['::props'] : this.data,
               this.data['::type'],
-              '',
-              '',
             )}`
           : html`<span class='mono-font' style='color:var(--red)'> Schema not found </span>`
         }
@@ -132,6 +134,8 @@ export default class SchemaTree extends LitElement {
     const minFieldColWidth = 300 - (level * leftPadding);
     let openBracket = '';
     let closeBracket = '';
+    const isXxxOfNode = data['::type']?.startsWith('xxx-of');
+    const newLevel = isXxxOfNode ? level : level + 1;
     if (data['::type'] === 'object') {
       if (dataType === 'array') {
         if (level < this.schemaExpandLevel) {
@@ -167,7 +171,7 @@ export default class SchemaTree extends LitElement {
     }
     if (typeof data === 'object') {
       return html`
-        <div class="tr ${level < this.schemaExpandLevel ? 'expanded' : 'collapsed'} ${data['::type'] || 'no-type-info'}">
+        <div class="tr ${level < this.schemaExpandLevel || data['::type']?.startsWith('xxx-of') ? 'expanded' : 'collapsed'} ${data['::type'] || 'no-type-info'}">
           <div class="td key ${data['::deprecated'] ? 'deprecated' : ''}" style='min-width:${minFieldColWidth}px'>
             ${data['::type'] === 'xxx-of-option' || data['::type'] === 'xxx-of-array' || key.startsWith('::OPTION')
               ? html`<span class='key-label xxx-of-key'>${keyLabel}</span><span class="xxx-of-descr">${keyDescr}</span>`
@@ -175,7 +179,7 @@ export default class SchemaTree extends LitElement {
                 ? html`<span class="key-label">${keyLabel.substring(0, keyLabel.length - 1)}</span><span style='color:var(--red);'>*</span>`
                 : keyLabel === '::props' || keyLabel === '::ARRAY~OF'
                   ? ''
-                  : html`<span class="key-label">${keyLabel}<span>`
+                  : html`<span class="key-label">${keyLabel}</span>`
             }
             ${level > 0
               && !(
@@ -193,7 +197,7 @@ export default class SchemaTree extends LitElement {
         </div>
         <div class='inside-bracket ${data['::type'] || 'no-type-info'}' style='padding-left:${data['::type'] === 'xxx-of-option' || data['::type'] === 'xxx-of-array' ? 0 : leftPadding}px;'>
           ${Array.isArray(data) && data[0]
-            ? html`${this.generateTree(data[0], 'xxx-of-option', '::ARRAY~OF', '', (level))}`
+            ? html`${this.generateTree(data[0], 'xxx-of-option', '::ARRAY~OF', '', newLevel)}`
             : html`
               ${Object.keys(data).map((dataKey) => html`
                 ${['::description', '::type', '::props', '::deprecated'].includes(dataKey)
@@ -203,7 +207,7 @@ export default class SchemaTree extends LitElement {
                         data[dataKey]['::type'],
                         dataKey,
                         data[dataKey]['::description'],
-                        (level + 1),
+                        newLevel,
                       )}`
                     : ''
                   : html`${this.generateTree(
@@ -211,7 +215,7 @@ export default class SchemaTree extends LitElement {
                     data[dataKey]['::type'],
                     dataKey,
                     data[dataKey]['::description'],
-                    (level + 1),
+                    newLevel,
                   )}`
                 }
               `)}
@@ -226,44 +230,35 @@ export default class SchemaTree extends LitElement {
     }
 
     // For Primitive Data types
-    const itemParts = data.split('~|~');
-    const dataTypeCss = itemParts[0].replace('{', '').substring(0, 4).toLowerCase();
+    const [type, readorWriteOnly, constraint, defaultValue, allowedValues, pattern, schemaDescription, , deprecated] = data.split('~|~');
+    if (readorWriteOnly === '🆁' && this.schemaHideReadOnly === 'true') {
+      return;
+    }
+    if (readorWriteOnly === '🆆' && this.schemaHideWriteOnly === 'true') {
+      return;
+    }
+    const dataTypeCss = type.replace('{', '').substring(0, 4).toLowerCase();
     return html`
       <div class = "tr primitive">
-        <div class="td key ${itemParts[8]}" style='min-width:${minFieldColWidth}px' >
+        <div class="td key ${deprecated}" style='min-width:${minFieldColWidth}px' >
           ${keyLabel.endsWith('*')
             ? html`<span class="key-label">${keyLabel.substring(0, keyLabel.length - 1)}</span><span style='color:var(--red);'>*</span>:`
             : key.startsWith('::OPTION')
-              ? html`<span class='key-label xxx-of-key'>${keyLabel}</span>`
+              ? html`<span class='key-label xxx-of-key'>${keyLabel}</span><span class="xxx-of-descr">${keyDescr}</span>`
               : html`<span class="key-label">${keyLabel}</span>:`
           }
           <span class='${dataTypeCss}'> 
-            ${dataType === 'array' ? `[${itemParts[0]}]` : `${itemParts[0]}`}
-            ${itemParts[1]}
+            ${dataType === 'array' ? `[${type}]` : `${type}`}
+            ${readorWriteOnly}
           </span>
         </div>
         <div class='td key-descr'>
           ${dataType === 'array' ? description : ''}
-          ${itemParts[2]
-            ? html`<div style='color: var(--fg2)'>${itemParts[2]}</div>`
-            : ''
-          }
-          ${itemParts[3]
-            ? html`<div style='color: var(--fg2)'><span class='bold-text'>Default:</span> ${itemParts[3]}</div>`
-            : ''
-          }
-          ${itemParts[4]
-            ? html`<div style='color: var(--fg2)'><span class='bold-text'>Allowed:</span> &nbsp; ${itemParts[4]}</div>`
-            : ''
-          }
-          ${itemParts[5]
-            ? html`<div style='color: var(--fg2)'><span class='bold-text'>Pattern:</span> ${itemParts[5]}</div>`
-            : ''
-          }
-          ${itemParts[6]
-            ? html`<span class="m-markdown-small">${unsafeHTML(marked(itemParts[6]))}</span>`
-            : ''
-          }
+          ${constraint ? html`<div style='color: var(--fg2)'>${constraint}</div>` : ''}
+          ${defaultValue ? html`<div style='color: var(--fg2)'><span class='bold-text'>Default:</span> ${defaultValue}</div>` : ''}
+          ${allowedValues ? html`<div style='color: var(--fg2)'><span class='bold-text'>Allowed:</span> &nbsp; ${allowedValues}</div>` : ''}
+          ${pattern ? html`<div style='color: var(--fg2)'><span class='bold-text'>Pattern:</span> ${pattern}</div>` : ''}
+          ${schemaDescription ? html`<span class="m-markdown-small">${unsafeHTML(marked(schemaDescription))}</span>` : ''}
         </div>
       </div>
     `;

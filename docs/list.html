@@ -1,5 +1,5 @@
 <!doctype html>
-
+<html>
 <head>
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-132775238-1"></script>
@@ -167,7 +167,7 @@
     </div>
 
     <div class = "container">
-      <a href="./examples/example6.html"> Change Logo  </a>
+      <a href="./examples/logo.html"> Change Logo  </a>
       <div class = "c-description" >
         <img style="width:32px" src="./images/logo-outline.png"/>
       </div>
@@ -233,17 +233,17 @@
       </div>
     </div>
 
-    <div class = "container" >
-      <a href="./examples/markdown-headings.html">Markdown headings in Navigation</a>
-      <div class = "c-description">
-        Optionally include markdown headings to navigation bar
-      </div>
-    </div>
-
     <div class = "container">
       <a href="./examples/example3.html"> Change Header Color </a>
       <img style="width:32px" src="./images/header.png"/>
       <div class = "c-description" >
+      </div>
+    </div>
+
+    <div class = "container" >
+      <a href="./examples/slots.html">Slots - HTML Injection</a>
+      <div class = "c-description">
+        Inject custom HTML content at various location of your document. 
       </div>
     </div>
 
@@ -252,6 +252,27 @@
       <img style="width:32px" src="./images/markdown.png"/>
       <div class = "c-description" >
         Supports markdown (headings, table, list, code etc)
+      </div>
+    </div>
+
+    <div class = "container" >
+      <a href="./examples/links.html">Links</a>
+      <div class = "c-description">
+        Provide External and Internal links to varius section of document 
+      </div>
+    </div>
+
+    <div class = "container" >
+      <a href="./examples/markdown-headings.html">Markdown headings in Navigation</a>
+      <div class = "c-description">
+        Optionally include markdown headings to navigation bar
+      </div>
+    </div>
+
+    <div class = "container" >
+      <a href="./examples/tag-focused-mode.html">Tags in focused mode</a>
+      <div class = "c-description">
+        Tag clicking on navigation bar
       </div>
     </div>
 
@@ -337,9 +358,9 @@
     </div>
 
     <div class = "container">
-      <a href="./examples/oauth2-with-scopes.html"> OAuth2 Client Credentials flow with scopes support </a>
+      <a href="./examples/oauth-vendor-extension.html"> OAuth Extensions</a>
       <div class = "c-description" >
-        Example of an Oauth2 Client Credentials flow, which supports sending scopes.
+        pre fill client-id and client-secret with vendor extension 'x-client-id' and 'x-client-secret'
       </div>
     </div>
 
@@ -349,8 +370,6 @@
         Declaratively provide your own API Key by using, and can programatically alter it using JS
       </div>
     </div>
-
-
 
     <div class = "container">
       <a href="./examples/additional-props.html"> Additional Properties </a>
@@ -420,9 +439,17 @@
     </div>
 
     <div class = "container" >
-      <a href="./examples/collapsable.html"> Collapsable tags </a>
+      <div>Collapsable tags</div>
       <div class = "c-description" >
-        Collapsable tags with possibility to change load state (open/closed)
+        In view & focused mode Tags can be expanded and collapsed. You may also set each tags initial state <br/>
+        <a href="./examples/collapsable.html"> View Mode </a> &nbsp;&nbsp; | &nbsp;&nbsp; 
+        <a href="./examples/collapsable-focused.html"> Focused Mode </a>
+      </div>
+    </div>
+    <div class = "container" >
+      <a href="./examples/mock.html"> Mock API </a>
+      <div class = "c-description" >
+        Using a Mocking API service performing realtime request and response
       </div>
     </div>
 
@@ -469,6 +496,9 @@
       <tr><td class="mono-bold">
         <a href="./tests/nested-allof-and-oneof.html"> Nested all-of & one-of </a>
       </td></tr>
+      <tr><td class="mono-bold">
+        <a href="./examples/xxx-of-nesting-with-expand-level.html"> Nested one-of along with schema expand level restriction </a>
+      </td></tr>
       <tr> <td class="mono-bold">
         <a href="./tests/long-paths.html"> Long paths </a>
       </td></tr>
@@ -477,6 +507,10 @@
       </td></tr>
       <tr> <td class="mono-bold">
         <a href="./tests/large-models.html"> Large models </a>
+      </td></tr>
+      <tr> <td class="mono-bold">
+        <a href="./tests/toomany-example-generation.html"> Too many example generation</a>
+        <span class="gray descr"> Multiple combination of any-of and one-of can generate many examples and lead to browser-crash, this test case ensures that max 10 examples are generated  </span>
       </td></tr>
       <tr><td class="mono-bold">
         <a href="./tests/xxx-of-recursive.html"> Various cases </a>
